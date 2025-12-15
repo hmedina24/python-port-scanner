@@ -47,6 +47,7 @@ This output gives you a quick picture of what services might be running on the h
 
 
 import socket
+from utils.common_ports import get_port_list
 
 def scan_port(target, port):
     """Attempts to connect to a single port."""
@@ -65,7 +66,7 @@ def main():
     print(f"\nScanning {target}...\n")
 
     # List of common ports (we will load this from common_ports.py later)
-    common_ports = [22, 80, 443]
+    common_ports = get_port_list()
 
     for port in common_ports:
         if scan_port(target, port):
