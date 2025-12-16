@@ -47,18 +47,36 @@ This output gives you a quick picture of what services might be running on the h
 
 
 import socket
+import ipaddress
 from utils.common_ports import get_port_list
 
-def scan_port(target, port):
+def resolve_target(target):
+    try:
+        #check of ot's a valid IP
+        ipaddress.ip_address(target)
+        return target
+    except ValueError:
+        #Try resolving hostname
+        try:
+            return socket.gethostbyname(target)
+        except socket.gaierror:
+            raise ValueError("Invalid hostname or IP Address")
+
+def scan_port(target, port, timeout=0.5):
+    if not isinstance(port, int) or port < 1 or port > 65535:
+        raise ValueError("Port must be between 1 and 65535")
+
+    target_ip = resolve_target(target)
+
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+
     """Attempts to connect to a single port."""
     try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.settimeout(1)
         result = sock.connect_ex((target, port))
+        return "open" if result == 0 else "closed"
+    finally:
         sock.close()
-        return result == 0  # True = open, False = closed
-    except:
-        return False
 
 def main():
     target = input("Enter target IP or hostname: ")
