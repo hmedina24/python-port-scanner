@@ -28,3 +28,5 @@ COMMON_PORTS = {
 def get_port_list():
     return list(COMMON_PORTS.keys())
 
+def resolve_service(port):
+    return COMMON_PORTS.get(port, "Unknown")
