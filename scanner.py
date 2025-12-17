@@ -48,13 +48,36 @@ This output gives you a quick picture of what services might be running on the h
 
 import socket
 import ipaddress
-from utils.common_ports import get_port_list
+import argparse
+from utils.common_ports import get_port_list, resolve_service 
 
 def resolve_target(target):
     try:
         return socket.gethostbyname(target)
     except socket.gaierror:
         raise ValueError("Invalid hostname or IP Address")
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Simple TCP Port Scanner")
+    parser.add_argument("--target", required=True, help="Target IP or hostname")
+    parser.add_argument(
+            "--ports",
+            help="Comma-seperated list of ports ( e.g 22,80,443). Defaults to common ports."
+    )
+    return parser.parse_args()
+
+def parse_ports(port_arg):
+    if not port_arg:
+        return get_port_list()
+
+    ports = []
+    for p in port_arg.split(","):
+        p = int(p.strip())
+        if p < 1 or p > 65535:
+            raise ValueError(f"Invalid port: {p}")
+        ports.append(p)
+
+    return ports
 
 def scan_port(target, port, timeout=0.5):
     if not isinstance(port, int) or port < 1 or port > 65535:
@@ -73,21 +96,35 @@ def scan_port(target, port, timeout=0.5):
         sock.close()
 
 def main():
-    target = input("Enter target IP or hostname: ")
+    args = parse_args()
 
-    print(f"\nScanning {target}...\n")
+    target = args.target
+    ports = parse_ports(args.ports)
+    open_ports = []
+    closed_ports = []
 
-    # List of common ports (we will load this from common_ports.py later)
-    common_ports = get_port_list()
+    print(f"\nScanning {target}...")
+    print("----------------------\n")
 
-    for port in common_ports:
+    for port in ports:
         status = scan_port(target, port)
+        service = resolve_service(port)
         if status == "open":
-            print(f"Port {port} is OPEN")
+            open_ports.append(port)
+            print(f"Port {port}\{service} ---> OPEN")
         else:
-            print(f"Port {port} is closed")
+            closed_ports.append(port)
 
-    print("\nScan complete.")
+    print("\nScan complete.\n")
+
+    print("Scan Summary:")
+    print("--------------")
+    print(f"Total ports scanned: {len(ports)}")
+    print(f"Open ports: {len(open_ports)}")
+    print(f"Closed ports: {len(closed_ports)}")
+
+    if open_ports:
+        print(f"Open port list: {', '.join(map(str, open_ports))}")
 
 if __name__ == "__main__":
     main()
